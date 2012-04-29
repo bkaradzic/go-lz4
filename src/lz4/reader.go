@@ -28,7 +28,6 @@ package lz4
 import (
 	"bufio"
 	"io"
-	"os"
 )
 
 const (
@@ -48,7 +47,7 @@ type decoder struct {
 	ref uint32
 }
 
-func (d *decoder) getLen() (uint32, os.Error) {
+func (d *decoder) getLen() (uint32, error) {
 
 	length := uint32(0)
 	ln, err := d.r.ReadByte()
@@ -67,7 +66,7 @@ func (d *decoder) getLen() (uint32, os.Error) {
 	return length, nil
 }
 
-func (d *decoder) readUint16() (uint16, os.Error) {
+func (d *decoder) readUint16() (uint16, error) {
 	b1, err := d.r.ReadByte()
 	if err != nil {
 		return 0, err
@@ -90,7 +89,7 @@ func (d *decoder) cp(length, decr uint32) {
 	d.ref += length - decr
 }
 
-func (d *decoder) consume(length uint32) os.Error {
+func (d *decoder) consume(length uint32) error {
 
 	d.flush(length)
 
@@ -118,8 +117,8 @@ func (d *decoder) flush(length uint32) {
 	}
 }
 
-func (d *decoder) finish(err os.Error) os.Error {
-	if err == os.EOF {
+func (d *decoder) finish(err error) error {
+	if err == io.EOF {
 		d.w.Write(d.buf[0:d.pos])
 		return d.w.Flush()
 	}
@@ -127,7 +126,7 @@ func (d *decoder) finish(err os.Error) os.Error {
 	return err
 }
 
-func decode1(pw *io.PipeWriter, r io.ByteReader) os.Error {
+func decode1(pw *io.PipeWriter, r io.ByteReader) error {
 
 	w := bufio.NewWriter(pw)
 	d := decoder{r, w, make([]byte, bufferSize), 0, 0}

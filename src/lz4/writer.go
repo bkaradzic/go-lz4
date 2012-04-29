@@ -28,19 +28,18 @@ package lz4
 import (
 	"bufio"
 	"io"
-	"os"
 )
 
 const (
-	minMatch       = 4
-	hashLog        = 17
-	hashTableSize  = 1 << hashLog
-	hashMask       = hashTableSize - 1
-	hashShift      = (minMatch * 8) - hashLog
+	minMatch             = 4
+	hashLog              = 17
+	hashTableSize        = 1 << hashLog
+	hashMask             = hashTableSize - 1
+	hashShift            = (minMatch * 8) - hashLog
 	incompressible uint8 = 128
-	prefetchSize   = 1024
-	flushPos       = bufferSize - prefetchSize
-	uninitHash     = 0x88888888
+	prefetchSize         = 1024
+	flushPos             = bufferSize - prefetchSize
+	uninitHash           = 0x88888888
 )
 
 type encoder struct {
@@ -54,24 +53,24 @@ type encoder struct {
 }
 
 type errWriteCloser struct {
-	err os.Error
+	err error
 }
 
-func (e *errWriteCloser) Write([]byte) (int, os.Error) {
+func (e *errWriteCloser) Write([]byte) (int, error) {
 	return 0, e.err
 }
 
-func (e *errWriteCloser) Close() os.Error {
+func (e *errWriteCloser) Close() error {
 	return e.err
 }
 
-func (e *encoder) cache(ln uint32) os.Error {
+func (e *encoder) cache(ln uint32) error {
 
 	if e.pos+ln > e.cached {
 		for ii := uint32(0); ii < ln; ii++ {
 			b0, err := e.r.ReadByte()
 			if err != nil && e.pos == e.cached {
-				return os.EOF
+				return io.EOF
 			}
 			e.buf[e.cached] = b0
 			e.cached++
@@ -81,7 +80,7 @@ func (e *encoder) cache(ln uint32) os.Error {
 	return nil
 }
 
-func (e *encoder) readUint32() (uint32, os.Error) {
+func (e *encoder) readUint32() (uint32, error) {
 	err := e.cache(4)
 	if err != nil {
 		return 0, err
@@ -160,9 +159,9 @@ func (e *encoder) flush() {
 	}
 }
 
-func (e *encoder) finish(err os.Error) os.Error {
+func (e *encoder) finish(err error) error {
 
-	if err == os.EOF {
+	if err == io.EOF {
 		e.writeLiterals(e.cached-e.pos, 0, e.anchor)
 		return e.w.Flush()
 	}
@@ -170,7 +169,7 @@ func (e *encoder) finish(err os.Error) os.Error {
 	return err
 }
 
-func encode1(pw *io.PipeWriter, r io.ByteReader) os.Error {
+func encode1(pw *io.PipeWriter, r io.ByteReader) error {
 
 	w := bufio.NewWriter(pw)
 	e := encoder{r, w, make([]uint32, hashTableSize), make([]byte, bufferSize), 0, 0, 0}

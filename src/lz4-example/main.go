@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"./_obj/lz4"
+	"lz4"
 )
 
 var (
