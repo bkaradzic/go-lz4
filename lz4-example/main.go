@@ -30,7 +30,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"lz4"
+
+	"github.com/bkaradzic/go-lz4"
 )
 
 var (
