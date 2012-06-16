@@ -1,10 +1,19 @@
 go-lz4
 ======
 
-go-lz4 is port of LZ4 lossless compression algorithm to Go. The original C code
+go-lz4 is port of LZ4 lossless compression algorithm to Go.The original C code
 is located at:
 
 https://code.google.com/p/lz4/
+
+Usage
+-----
+
+    go get github.com/bkaradzic/go-lz4
+
+    import "github.com/bkaradzic/go-lz4"
+
+The package name is `lz4`
 
 Notes
 -----
