@@ -1,7 +1,7 @@
 go-lz4
 ======
 
-go-lz4 is port of LZ4 lossless compression algorithm to Go.The original C code
+go-lz4 is port of LZ4 lossless compression algorithm to Go. The original C code
 is located at:
 
 https://code.google.com/p/lz4/
@@ -25,6 +25,20 @@ There are two difference between original implementation and Go version:
 * go-lz4 doesn't save magic value and chunk size at the begining of the file. Due
 this difference file produced by original lz4 implementation can't be decompressed
 by go-lz4 implementation without ignoring first 8 bytes of file.
+
+Thanks
+------
+
+ - Dustin Sallings https://github.com/dustin
+
+Contact
+-------
+
+[@bkaradzic](https://twitter.com/bkaradzic)  
+http://www.stuckingeometry.com
+
+Project page  
+https://github.com/bkaradzic/go-lz4
 
 License
 -------
