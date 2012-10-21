@@ -6,6 +6,10 @@ is located at:
 
 https://code.google.com/p/lz4/
 
+Status
+------
+[![Build Status](https://secure.travis-ci.org/bkaradzic/go-lz4.png)](http://travis-ci.org/bkaradzic/go-lz4)
+
 Usage
 -----
 
