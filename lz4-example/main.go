@@ -29,9 +29,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"runtime/pprof"
 
-	"github.com/bkaradzic/go-lz4"
+	lz4 "github.com/bkaradzic/go-lz4"
 )
 
 var (
@@ -40,7 +42,17 @@ var (
 
 func main() {
 
+	var optCpuProfile = flag.String("cpuprofile", "", "profile")
 	flag.Parse()
+
+	if *optCpuProfile != "" {
+		f, err := os.Create(*optCpuProfile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	args := flag.Args()
 
@@ -59,13 +71,11 @@ func main() {
 	defer input.Close()
 
 	if *decompress {
-		lz4r := lz4.NewReader(input)
-		defer lz4r.Close()
-		data, _ = ioutil.ReadAll(lz4r)
+		data, _ = ioutil.ReadAll(input)
+		data, _ = lz4.Decode(nil, data)
 	} else {
-		lz4w := lz4.NewWriter(input)
-		defer lz4w.Close()
-		data, _ = ioutil.ReadAll(lz4w)
+		data, _ = ioutil.ReadAll(input)
+		data, _ = lz4.Encode(nil, data)
 	}
 
 	err = ioutil.WriteFile(args[1], data, 0644)

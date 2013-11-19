@@ -26,39 +26,50 @@
 package lz4
 
 import (
-	"bufio"
+	"errors"
 	"io"
 )
 
+var (
+	ErrCorrupt = errors.New("corrupt input")
+)
+
 const (
-	mlBits     = 4
-	mlMask     = (1 << mlBits) - 1
-	runBits    = 8 - mlBits
-	runMask    = (1 << runBits) - 1
-	bufferSize = 128 << 10
-	flushSize  = 1 << 16
+	mlBits  = 4
+	mlMask  = (1 << mlBits) - 1
+	runBits = 8 - mlBits
+	runMask = (1 << runBits) - 1
 )
 
 type decoder struct {
-	r   io.ByteReader
-	w   *bufio.Writer
-	buf []byte
-	pos uint32
-	ref uint32
+	src  []byte
+	dst  []byte
+	spos uint32
+	dpos uint32
+	ref  uint32
+}
+
+func (d *decoder) readByte() (uint8, error) {
+	if int(d.spos) == len(d.src) {
+		return 0, io.EOF
+	}
+	b := d.src[d.spos]
+	d.spos++
+	return b, nil
 }
 
 func (d *decoder) getLen() (uint32, error) {
 
 	length := uint32(0)
-	ln, err := d.r.ReadByte()
+	ln, err := d.readByte()
 	if err != nil {
-		return 0, err
+		return 0, ErrCorrupt
 	}
 	for ln == 255 {
 		length += 255
-		ln, err = d.r.ReadByte()
+		ln, err = d.readByte()
 		if err != nil {
-			return 0, err
+			return 0, ErrCorrupt
 		}
 	}
 	length += uint32(ln)
@@ -67,108 +78,97 @@ func (d *decoder) getLen() (uint32, error) {
 }
 
 func (d *decoder) readUint16() (uint16, error) {
-	b1, err := d.r.ReadByte()
+	b1, err := d.readByte()
 	if err != nil {
 		return 0, err
 	}
-	b2, err := d.r.ReadByte()
+	b2, err := d.readByte()
 	if err != nil {
-		return 0, err
+		return 0, ErrCorrupt
 	}
 	u16 := (uint16(b2) << 8) | uint16(b1)
 	return u16, nil
 }
 
 func (d *decoder) cp(length, decr uint32) {
-	d.flush(length)
-
+	// can't use copy here, but could probably optimize the appends
 	for ii := uint32(0); ii < length; ii++ {
-		d.buf[d.pos+ii] = d.buf[d.ref+ii]
+		d.dst = append(d.dst, d.dst[d.ref+ii])
 	}
-	d.pos += length
+	d.dpos += length
 	d.ref += length - decr
 }
 
 func (d *decoder) consume(length uint32) error {
 
-	d.flush(length)
-
 	for ii := uint32(0); ii < length; ii++ {
-		by, err := d.r.ReadByte()
+		by, err := d.readByte()
 		if err != nil {
-			return d.finish(err)
+			return ErrCorrupt
 		}
-		d.buf[d.pos] = by
-		d.pos++
+		d.dst = append(d.dst, by)
+		d.dpos++
 	}
 
 	return nil
 }
 
-func (d *decoder) flush(length uint32) {
-
-	if d.pos+length > bufferSize {
-		s := d.ref - flushSize
-		d.w.Write(d.buf[0:s])
-		n := d.pos - d.ref
-		copy(d.buf[0:flushSize+n], d.buf[s:d.pos])
-		d.pos = flushSize + n
-		d.ref = flushSize
-	}
-}
-
 func (d *decoder) finish(err error) error {
 	if err == io.EOF {
-		d.w.Write(d.buf[0:d.pos])
-		return d.w.Flush()
+		return nil
 	}
 
 	return err
 }
 
-func decode1(pw *io.PipeWriter, r io.ByteReader) error {
+func Decode(dst, src []byte) ([]byte, error) {
 
-	w := bufio.NewWriter(pw)
-	d := decoder{r, w, make([]byte, bufferSize), 0, 0}
+	if dst == nil {
+		dst = make([]byte, len(src)) // guess
+	}
+
+	dst = dst[:0]
+
+	d := decoder{src: src, dst: dst}
 
 	decr := []uint32{0, 3, 2, 3}
 
 	for {
-		code, err := d.r.ReadByte()
+		code, err := d.readByte()
 		if err != nil {
-			return d.finish(err)
+			return d.dst, d.finish(err)
 		}
 
 		length := uint32(code >> mlBits)
 		if length == runMask {
 			ln, err := d.getLen()
 			if err != nil {
-				return d.finish(err)
+				return nil, ErrCorrupt
 			}
 			length += ln
 		}
 
 		err = d.consume(length)
 		if err != nil {
-			return d.finish(err)
+			return nil, ErrCorrupt
 		}
 
 		back, err := d.readUint16()
 		if err != nil {
-			return d.finish(err)
+			return d.dst, d.finish(err)
 		}
-		d.ref = d.pos - uint32(back)
+		d.ref = d.dpos - uint32(back)
 
 		length = uint32(code & mlMask)
 		if length == mlMask {
 			ln, err := d.getLen()
 			if err != nil {
-				return d.finish(err)
+				return nil, ErrCorrupt
 			}
 			length += ln
 		}
 
-		literal := d.pos - d.ref
+		literal := d.dpos - d.ref
 		if literal < 4 {
 			d.cp(4, decr[literal])
 		} else {
@@ -177,19 +177,4 @@ func decode1(pw *io.PipeWriter, r io.ByteReader) error {
 
 		d.cp(length, 0)
 	}
-	panic("unreachable")
-}
-
-func decode(r io.Reader, pw *io.PipeWriter) {
-	br, ok := r.(io.ByteReader)
-	if !ok {
-		br = bufio.NewReader(r)
-	}
-	pw.CloseWithError(decode1(pw, br))
-}
-
-func NewReader(r io.Reader) io.ReadCloser {
-	pr, pw := io.Pipe()
-	go decode(r, pw)
-	return pr
 }
