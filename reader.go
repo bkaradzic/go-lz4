@@ -105,14 +105,16 @@ func (d *decoder) cp(length, decr uint32) {
 
 func (d *decoder) consume(length uint32) error {
 
-	for ii := uint32(0); ii < length; ii++ {
-		by, err := d.readByte()
-		if err != nil {
-			return ErrCorrupt
-		}
-		d.dst = append(d.dst, by)
-		d.dpos++
+	if int(d.spos+length) > len(d.src) {
+		return ErrCorrupt
 	}
+
+	for ii := uint32(0); ii < length; ii++ {
+		d.dst = append(d.dst, d.src[d.spos+ii])
+	}
+
+	d.spos += length
+	d.dpos += length
 
 	return nil
 }
