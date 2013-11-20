@@ -92,12 +92,12 @@ func (d *decoder) readUint16() (uint16, error) {
 
 func (d *decoder) cp(length, decr uint32) {
 	// can't use copy here, but could probably optimize the appends
-	if int(d.ref)+int(length)-len(d.dst) > 0 {
+	if int(d.ref+length) < len(d.dst) {
+		d.dst = append(d.dst, d.dst[d.ref:d.ref+length]...)
+	} else {
 		for ii := uint32(0); ii < length; ii++ {
 			d.dst = append(d.dst, d.dst[d.ref+ii])
 		}
-	} else {
-		d.dst = append(d.dst, d.dst[d.ref:d.ref+length]...)
 	}
 	d.dpos += length
 	d.ref += length - decr
