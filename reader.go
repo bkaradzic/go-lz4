@@ -91,13 +91,13 @@ func (d *decoder) readUint16() (uint16, error) {
 }
 
 func (d *decoder) cp(length, decr uint32) {
-	// can't use copy here, but could probably optimize the appends
-	if int(d.ref)+int(length)-len(d.dst) > 0 {
+
+	if int(d.ref+length) < len(d.dst) {
+		d.dst = append(d.dst, d.dst[d.ref:d.ref+length]...)
+	} else {
 		for ii := uint32(0); ii < length; ii++ {
 			d.dst = append(d.dst, d.dst[d.ref+ii])
 		}
-	} else {
-		d.dst = append(d.dst, d.dst[d.ref:d.ref+length]...)
 	}
 	d.dpos += length
 	d.ref += length - decr
@@ -105,14 +105,23 @@ func (d *decoder) cp(length, decr uint32) {
 
 func (d *decoder) consume(length uint32) error {
 
-	for ii := uint32(0); ii < length; ii++ {
-		by, err := d.readByte()
-		if err != nil {
-			return ErrCorrupt
-		}
-		d.dst = append(d.dst, by)
-		d.dpos++
+	if int(d.spos+length) > len(d.src) {
+		return ErrCorrupt
 	}
+
+	// There's a trade-off here: when do we handroll this loop, and when do
+	// we call append(d.dst, d.src[]...).  For compressible data, we expect
+	// short literals which means the overhead of the array apppend is
+	// going to be more than the inlined element append.  For
+	// incompressible data, we expect long runs of literals, at which point
+	// it makes more sense to call array append.
+
+	for ii := uint32(0); ii < length; ii++ {
+		d.dst = append(d.dst, d.src[d.spos+ii])
+	}
+
+	d.spos += length
+	d.dpos += length
 
 	return nil
 }
