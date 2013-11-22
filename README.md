@@ -22,13 +22,9 @@ The package name is `lz4`
 Notes
 -----
 
-There are two difference between original implementation and Go version:
-
-* Data is encoded and decoded as a stream. There is no size argument requirement.
-
-* go-lz4 doesn't save magic value and chunk size at the begining of the file. Due
-this difference file produced by original lz4 implementation can't be decompressed
-by go-lz4 implementation without ignoring first 8 bytes of file.
+* go-lz4 saves a varint with the original uncompressed length at the beginning
+  of the encoded buffer.  They may get in the way of interoperability with
+  other implementations.
 
 Thanks
 ------

@@ -26,6 +26,7 @@
 package lz4
 
 import (
+	"encoding/binary"
 	"errors"
 	"io"
 )
@@ -77,53 +78,17 @@ func (d *decoder) getLen() (uint32, error) {
 	return length, nil
 }
 
-func (d *decoder) readUint16() (uint16, error) {
-	b1, err := d.readByte()
-	if err != nil {
-		return 0, err
-	}
-	b2, err := d.readByte()
-	if err != nil {
-		return 0, ErrCorrupt
-	}
-	u16 := (uint16(b2) << 8) | uint16(b1)
-	return u16, nil
-}
-
 func (d *decoder) cp(length, decr uint32) {
 
-	if int(d.ref+length) < len(d.dst) {
-		d.dst = append(d.dst, d.dst[d.ref:d.ref+length]...)
+	if int(d.ref+length) < int(d.dpos) {
+		copy(d.dst[d.dpos:], d.dst[d.ref:d.ref+length])
 	} else {
 		for ii := uint32(0); ii < length; ii++ {
-			d.dst = append(d.dst, d.dst[d.ref+ii])
+			d.dst[d.dpos+ii] = d.dst[d.ref+ii]
 		}
 	}
 	d.dpos += length
 	d.ref += length - decr
-}
-
-func (d *decoder) consume(length uint32) error {
-
-	if int(d.spos+length) > len(d.src) {
-		return ErrCorrupt
-	}
-
-	// There's a trade-off here: when do we handroll this loop, and when do
-	// we call append(d.dst, d.src[]...).  For compressible data, we expect
-	// short literals which means the overhead of the array apppend is
-	// going to be more than the inlined element append.  For
-	// incompressible data, we expect long runs of literals, at which point
-	// it makes more sense to call array append.
-
-	for ii := uint32(0); ii < length; ii++ {
-		d.dst = append(d.dst, d.src[d.spos+ii])
-	}
-
-	d.spos += length
-	d.dpos += length
-
-	return nil
 }
 
 func (d *decoder) finish(err error) error {
@@ -136,13 +101,21 @@ func (d *decoder) finish(err error) error {
 
 func Decode(dst, src []byte) ([]byte, error) {
 
-	if dst == nil {
-		dst = make([]byte, len(src)) // guess
+	if len(src) < 4 {
+		return nil, ErrCorrupt
 	}
 
-	dst = dst[:0]
+	uncompressedLen := binary.LittleEndian.Uint32(src)
 
-	d := decoder{src: src, dst: dst}
+	if uncompressedLen == 0 {
+		return nil, nil
+	}
+
+	if dst == nil || len(dst) < int(uncompressedLen) {
+		dst = make([]byte, uncompressedLen)
+	}
+
+	d := decoder{src: src, dst: dst[:uncompressedLen], spos: 4}
 
 	decr := []uint32{0, 3, 2, 3}
 
@@ -161,12 +134,28 @@ func Decode(dst, src []byte) ([]byte, error) {
 			length += ln
 		}
 
-		err = d.consume(length)
-		if err != nil {
+		if int(d.spos+length) > len(d.src) {
 			return nil, ErrCorrupt
 		}
 
-		back, err := d.readUint16()
+		for ii := uint32(0); ii < length; ii++ {
+			d.dst[d.dpos+ii] = d.src[d.spos+ii]
+		}
+
+		d.spos += length
+		d.dpos += length
+
+		if int(d.spos) == len(d.src) {
+			return d.dst, nil
+		}
+
+		if int(d.spos+2) >= len(d.src) {
+			return nil, ErrCorrupt
+		}
+
+		back := uint16(d.src[d.spos]) | uint16(d.src[d.spos+1])<<8
+		d.spos += 2
+
 		if err != nil {
 			return d.dst, d.finish(err)
 		}
