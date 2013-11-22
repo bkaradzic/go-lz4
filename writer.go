@@ -113,7 +113,8 @@ func Encode(dst, src []byte) ([]byte, error) {
 
 	e := encoder{src: src, dst: dst, hashTable: make([]uint32, hashTableSize)}
 
-	e.dpos = uint32(binary.PutUvarint(dst, uint64(len(src))))
+	binary.LittleEndian.PutUint32(dst, uint32(len(src)))
+	e.dpos = 4
 
 	var (
 		step  uint32 = 1

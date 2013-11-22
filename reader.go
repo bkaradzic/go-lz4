@@ -101,17 +101,17 @@ func (d *decoder) finish(err error) error {
 
 func Decode(dst, src []byte) ([]byte, error) {
 
-	uncompressedLen, n := binary.Uvarint(src)
-
-	if n <= 0 {
+	if len(src) < 4 {
 		return nil, ErrCorrupt
 	}
+
+	uncompressedLen := binary.LittleEndian.Uint32(src)
 
 	if dst == nil || len(dst) < int(uncompressedLen) {
 		dst = make([]byte, uncompressedLen)
 	}
 
-	d := decoder{src: src, dst: dst[:uncompressedLen], spos: uint32(n)}
+	d := decoder{src: src, dst: dst[:uncompressedLen], spos: 4}
 
 	decr := []uint32{0, 3, 2, 3}
 
