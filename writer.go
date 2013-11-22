@@ -25,6 +25,7 @@
 
 package lz4
 
+import "encoding/binary"
 import "errors"
 
 const (
@@ -55,7 +56,7 @@ func CompressBound(isize int) int {
 	if isize > MaxInputSize {
 		return 0
 	}
-	return isize + ((isize) / 255) + 16
+	return isize + ((isize) / 255) + 16 + 4
 }
 
 func (e *encoder) readUint32(pos int) uint32 {
@@ -111,6 +112,8 @@ func Encode(dst, src []byte) ([]byte, error) {
 	}
 
 	e := encoder{src: src, dst: dst, hashTable: make([]uint32, hashTableSize)}
+
+	e.dpos = uint32(binary.PutUvarint(dst, uint64(len(src))))
 
 	var (
 		step  uint32 = 1

@@ -26,6 +26,7 @@
 package lz4
 
 import (
+	"encoding/binary"
 	"errors"
 	"io"
 )
@@ -92,11 +93,11 @@ func (d *decoder) readUint16() (uint16, error) {
 
 func (d *decoder) cp(length, decr uint32) {
 
-	if int(d.ref+length) < len(d.dst) {
-		d.dst = append(d.dst, d.dst[d.ref:d.ref+length]...)
+	if int(d.ref+length) < int(d.dpos) {
+		copy(d.dst[d.dpos:], d.dst[d.ref:d.ref+length])
 	} else {
 		for ii := uint32(0); ii < length; ii++ {
-			d.dst = append(d.dst, d.dst[d.ref+ii])
+			d.dst[d.dpos+ii] = d.dst[d.ref+ii]
 		}
 	}
 	d.dpos += length
@@ -117,7 +118,7 @@ func (d *decoder) consume(length uint32) error {
 	// it makes more sense to call array append.
 
 	for ii := uint32(0); ii < length; ii++ {
-		d.dst = append(d.dst, d.src[d.spos+ii])
+		d.dst[d.dpos+ii] = d.src[d.spos+ii]
 	}
 
 	d.spos += length
@@ -136,13 +137,17 @@ func (d *decoder) finish(err error) error {
 
 func Decode(dst, src []byte) ([]byte, error) {
 
-	if dst == nil {
-		dst = make([]byte, len(src)) // guess
+	uncompressedLen, n := binary.Uvarint(src)
+
+	if n <= 0 {
+		return nil, ErrCorrupt
 	}
 
-	dst = dst[:0]
+	if dst == nil || len(dst) < int(uncompressedLen) {
+		dst = make([]byte, uncompressedLen)
+	}
 
-	d := decoder{src: src, dst: dst}
+	d := decoder{src: src, dst: dst[:uncompressedLen], spos: uint32(n)}
 
 	decr := []uint32{0, 3, 2, 3}
 
