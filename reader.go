@@ -107,6 +107,10 @@ func Decode(dst, src []byte) ([]byte, error) {
 
 	uncompressedLen := binary.LittleEndian.Uint32(src)
 
+	if uncompressedLen == 0 {
+		return nil, nil
+	}
+
 	if dst == nil || len(dst) < int(uncompressedLen) {
 		dst = make([]byte, uncompressedLen)
 	}
