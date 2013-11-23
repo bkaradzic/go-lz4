@@ -22,7 +22,7 @@ The package name is `lz4`
 Notes
 -----
 
-* go-lz4 saves a varint with the original uncompressed length at the beginning
+* go-lz4 saves a uint32 with the original uncompressed length at the beginning
   of the encoded buffer.  They may get in the way of interoperability with
   other implementations.
 
