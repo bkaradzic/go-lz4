@@ -59,15 +59,6 @@ func CompressBound(isize int) int {
 	return isize + ((isize) / 255) + 16 + 4
 }
 
-func (e *encoder) readUint32(pos int) uint32 {
-
-	if pos >= len(e.src) {
-		return 0
-	}
-
-	return uint32(e.src[pos+3])<<24 | uint32(e.src[pos+2])<<16 | uint32(e.src[pos+1])<<8 | uint32(e.src[pos+0])
-}
-
 func (e *encoder) writeLiterals(length, mlLen, pos uint32) {
 
 	ln := length
@@ -97,7 +88,10 @@ func (e *encoder) writeLiterals(length, mlLen, pos uint32) {
 		e.dpos++
 	}
 
-	copy(e.dst[e.dpos:], e.src[pos:pos+length])
+	for ii := uint32(0); ii < length; ii++ {
+		e.dst[e.dpos+ii] = e.src[pos+ii]
+	}
+
 	e.dpos += length
 }
 
@@ -126,12 +120,14 @@ func Encode(dst, src []byte) ([]byte, error) {
 			e.writeLiterals(uint32(len(e.src))-e.anchor, 0, e.anchor)
 			return e.dst[:e.dpos], nil
 		}
-		sequence := e.readUint32(int(e.pos))
+
+		sequence := uint32(e.src[e.pos+3])<<24 | uint32(e.src[e.pos+2])<<16 | uint32(e.src[e.pos+1])<<8 | uint32(e.src[e.pos+0])
+
 		hash := (sequence * 2654435761) >> hashShift
 		ref := e.hashTable[hash] + uninitHash
 		e.hashTable[hash] = e.pos - uninitHash
 
-		if ((e.pos-ref)>>16) != 0 || e.readUint32(int(ref)) != sequence {
+		if ((e.pos-ref)>>16) != 0 || uint32(e.src[ref+3])<<24|uint32(e.src[ref+2])<<16|uint32(e.src[ref+1])<<8|uint32(e.src[ref+0]) != sequence {
 			if e.pos-e.anchor > limit {
 				limit <<= 1
 				step += 1 + (step >> 2)
