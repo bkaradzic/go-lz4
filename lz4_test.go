@@ -3,27 +3,10 @@ package lz4
 import (
 	"bytes"
 	"io/ioutil"
-	"math/rand"
 	"testing"
 )
 
-//var testfile, _ = ioutil.ReadFile("testdata/pg1661.txt")
-var testfile = shuffleFile("/usr/share/dict/words")
-
-func shuffleFile(filename string) []byte {
-
-	data, _ := ioutil.ReadFile(filename)
-
-	lines := bytes.Split(data, []byte("\n"))
-	dst := make([][]byte, len(lines))
-
-	perm := rand.Perm(len(lines))
-	for i, v := range perm {
-		dst[i] = lines[v]
-	}
-
-	return bytes.Join(dst, []byte("\n"))
-}
+var testfile, _ = ioutil.ReadFile("testdata/pg1661.txt")
 
 func roundtrip(t *testing.T, input []byte) {
 
