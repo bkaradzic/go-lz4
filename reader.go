@@ -156,9 +156,6 @@ func Decode(dst, src []byte) ([]byte, error) {
 		back := uint16(d.src[d.spos]) | uint16(d.src[d.spos+1])<<8
 		d.spos += 2
 
-		if err != nil {
-			return d.dst, d.finish(err)
-		}
 		d.ref = d.dpos - uint32(back)
 
 		length = uint32(code & mlMask)
