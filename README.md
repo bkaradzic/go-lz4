@@ -44,7 +44,7 @@ https://github.com/bkaradzic/go-lz4
 License
 -------
 
-Copyright 2011-2012 Branimir Karadzic. All rights reserved.
+Copyright 2011-2012 Branimir Karadzic. All rights reserved.  
 Copyright 2013 Damian Gryski. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
