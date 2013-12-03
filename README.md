@@ -26,10 +26,11 @@ Notes
   of the encoded buffer.  They may get in the way of interoperability with
   other implementations.
 
-Thanks
-------
+Contributors
+------------
 
- - Dustin Sallings https://github.com/dustin
+Damian Gryski ([@dgryski](https://github.com/dgryski))  
+Dustin Sallings ([@dustin](https://github.com/dustin))
 
 Contact
 -------
@@ -44,6 +45,7 @@ License
 -------
 
 Copyright 2011-2012 Branimir Karadzic. All rights reserved.
+Copyright 2013 Damian Gryski. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
