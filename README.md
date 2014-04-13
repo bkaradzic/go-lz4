@@ -8,7 +8,8 @@ https://code.google.com/p/lz4/
 
 Status
 ------
-[![Build Status](https://secure.travis-ci.org/bkaradzic/go-lz4.png)](http://travis-ci.org/bkaradzic/go-lz4)
+[![Build Status](https://secure.travis-ci.org/bkaradzic/go-lz4.png)](http://travis-ci.org/bkaradzic/go-lz4)  
+[![GoDoc](https://godoc.org/github.com/bkaradzic/go-lz4?status.png)](https://godoc.org/github.com/bkaradzic/go-lz4)
 
 Usage
 -----
