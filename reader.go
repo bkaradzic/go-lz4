@@ -111,6 +111,10 @@ func Decode(dst, src []byte) ([]byte, error) {
 		return nil, nil
 	}
 
+	if uncompressedLen > MaxInputSize {
+		return nil, ErrTooLarge
+	}
+
 	if dst == nil || len(dst) < int(uncompressedLen) {
 		dst = make([]byte, uncompressedLen)
 	}
@@ -153,10 +157,14 @@ func Decode(dst, src []byte) ([]byte, error) {
 			return nil, ErrCorrupt
 		}
 
-		back := uint16(d.src[d.spos]) | uint16(d.src[d.spos+1])<<8
-		d.spos += 2
+		back := uint32(d.src[d.spos]) | uint32(d.src[d.spos+1])<<8
 
-		d.ref = d.dpos - uint32(back)
+		if back > d.dpos {
+			return nil, ErrCorrupt
+		}
+
+		d.spos += 2
+		d.ref = d.dpos - back
 
 		length = uint32(code & mlMask)
 		if length == mlMask {
@@ -172,6 +180,10 @@ func Decode(dst, src []byte) ([]byte, error) {
 			d.cp(4, decr[literal])
 		} else {
 			length += 4
+		}
+
+		if d.dpos+length > uncompressedLen {
+			return nil, ErrCorrupt
 		}
 
 		d.cp(length, 0)
