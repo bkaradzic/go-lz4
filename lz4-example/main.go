@@ -42,11 +42,11 @@ var (
 
 func main() {
 
-	var optCpuProfile = flag.String("cpuprofile", "", "profile")
+	var optCPUProfile = flag.String("cpuprofile", "", "profile")
 	flag.Parse()
 
-	if *optCpuProfile != "" {
-		f, err := os.Create(*optCpuProfile)
+	if *optCPUProfile != "" {
+		f, err := os.Create(*optCPUProfile)
 		if err != nil {
 			log.Fatal(err)
 		}

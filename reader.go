@@ -32,6 +32,7 @@ import (
 )
 
 var (
+	// ErrCorrupt indicates the input was corrupt
 	ErrCorrupt = errors.New("corrupt input")
 )
 
@@ -99,6 +100,8 @@ func (d *decoder) finish(err error) error {
 	return err
 }
 
+// Decode returns the decoded form of src.  The returned slice may be a
+// subslice of dst if it was large enough to hold the entire decoded block.
 func Decode(dst, src []byte) ([]byte, error) {
 
 	if len(src) < 4 {

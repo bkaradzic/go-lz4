@@ -35,10 +35,13 @@ const (
 	hashShift             = (minMatch * 8) - hashLog
 	incompressible uint32 = 128
 	uninitHash            = 0x88888888
-	MaxInputSize          = 0x7E000000
+
+	// MaxInputSize is the largest buffer than can be compressed in a single block
+	MaxInputSize = 0x7E000000
 )
 
 var (
+	// ErrTooLarge indicates the input buffer was too large
 	ErrTooLarge = errors.New("input too large")
 )
 
@@ -95,6 +98,8 @@ func (e *encoder) writeLiterals(length, mlLen, pos uint32) {
 	e.dpos += length
 }
 
+// Encode returns the encoded form of src.  The returned array may be a
+// sub-slice of dst if it was large enough to hold the entire output.
 func Encode(dst, src []byte) ([]byte, error) {
 
 	if len(src) >= MaxInputSize {
@@ -112,7 +117,7 @@ func Encode(dst, src []byte) ([]byte, error) {
 
 	var (
 		step  uint32 = 1
-		limit uint32 = incompressible
+		limit        = incompressible
 	)
 
 	for {
