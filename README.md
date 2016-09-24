@@ -27,6 +27,11 @@ Notes
   of the encoded buffer.  They may get in the way of interoperability with
   other implementations.
 
+Alternative
+-----------
+
+https://github.com/pierrec/lz4
+
 Contributors
 ------------
 
