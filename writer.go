@@ -108,8 +108,10 @@ func Encode(dst, src []byte) ([]byte, error) {
 		return nil, ErrTooLarge
 	}
 
-	if n := CompressBound(len(src)); len(dst) < n {
+	if n := CompressBound(len(src)); cap(dst) < n {
 		dst = make([]byte, n)
+	} else {
+		dst = dst[:n]
 	}
 
 	e := encoder{src: src, dst: dst, hashTable: make([]uint32, hashTableSize)}

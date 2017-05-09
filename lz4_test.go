@@ -46,18 +46,27 @@ func TestWords(t *testing.T) {
 }
 
 func BenchmarkLZ4Encode(b *testing.B) {
+	var dst []byte
+	var err error
+
 	for i := 0; i < b.N; i++ {
-		Encode(nil, testfile)
+		dst, err = Encode(dst, testfile)
+		if err != nil {
+			b.Fatalf("Error while encoding: %v", err)
+		}
 	}
 }
 
 func BenchmarkLZ4Decode(b *testing.B) {
-
 	var compressed, _ = Encode(nil, testfile)
+	var dst []byte
+	var err error
 
 	b.ResetTimer()
-
 	for i := 0; i < b.N; i++ {
-		Decode(nil, compressed)
+		dst, err = Decode(dst, compressed)
+		if err != nil {
+			b.Fatalf("Error while decoding: %v", err)
+		}
 	}
 }

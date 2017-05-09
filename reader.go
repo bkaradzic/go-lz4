@@ -118,7 +118,7 @@ func Decode(dst, src []byte) ([]byte, error) {
 		return nil, ErrTooLarge
 	}
 
-	if dst == nil || len(dst) < int(uncompressedLen) {
+	if dst == nil || cap(dst) < int(uncompressedLen) {
 		dst = make([]byte, uncompressedLen)
 	}
 
